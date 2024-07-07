@@ -32,6 +32,8 @@ function OtpVerification() {
       console.log(response);
 
       localStorage.setItem("token", response.data.token);
+      localStorage.setItem("_id", response.data.response._id)
+      
       setLogin(true)
 
       navigation("/home");

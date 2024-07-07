@@ -5,21 +5,23 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 function GoogleAuth() {
-
   const navigate = useNavigate();
 
   const handleGoogleLogin = async (response) => {
     const token = response.credential;
     try {
-      const userInfo = await axios.post("http://localhost:8080/user/auth/google", {
-        token,
-      });
+      const userInfo = await axios.post(
+        "http://localhost:8080/user/auth/google",
+        {
+          token,
+        }
+      );
 
-      console.log(userInfo)
+      console.log(userInfo);
 
       localStorage.setItem("email", userInfo.data.email);
       localStorage.setItem("name", userInfo.data.name);
-      
+
       navigate("/register-details");
     } catch (error) {
       console.error("Google login failed", error);

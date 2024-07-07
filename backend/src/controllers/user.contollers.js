@@ -4,6 +4,7 @@ import { jwtSign, verify } from "../utils/jwtToken.utils.js";
 import jwt from "jsonwebtoken";
 import { nodeMailer } from "../utils/nodemailer.utils.js";
 import { OAuth2Client } from "google-auth-library";
+import { emailSchema, numericStringSchema } from "../utils/inputDataSchema.utils.js";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -182,4 +183,138 @@ const googleAuth = async (req, res) => {
       .json({ message: "Unauthorised acess", status: false });
   }
 };
-export { login, signup, LoginWithToken, otpVerification, googleAuth };
+
+
+const loginWithGoogle = async(req, res) => {
+  try {
+    const {fullName, email, mobile, password} = req.body
+
+    const data = {
+      fullName, 
+      email,
+      mobile,
+      password: await encryptPassword(password)
+    }
+    const exist = await User.findOne({email})
+
+    if(exist) {
+      await User.deleteOne({email})
+    }
+
+    const response = await User.create(data)
+
+    const token = jwtSign(email)
+
+    return res.status(200).json({response, token, status: true, messag: 'Successfully login'})
+
+  } catch (error) {
+    return res.status(401).json({message: 'Unable to create the user', status: false})
+  }
+}
+
+
+const verifyEmail = async(req, res) => {
+  try {
+    const {email} = req.body
+
+    if(!email) {
+      res.status(401).json({message: 'Invalid Eamil or does not Exist(TiN)', status: false})
+    }
+
+    const checkEmailSchema = emailSchema.safeParse(email)
+
+    if(!checkEmailSchema.success) {
+      return status(401).json({message: 'Invalid Email format(TiN)', status: false})
+    }
+
+    const response  = await User.findOne({email}).select("-password")
+    console.log(response)
+
+    if(!response) {
+      return res.status(400).json({message: 'User does not exist', status: false})
+    }
+
+    const otp = await nodeMailer(email)
+
+    const updateUser = await User.updateOne({email}, {
+      $set: {otp}
+    })
+
+    return res.status(200).json({response, message: 'Email Verified', status: true})
+
+  } catch (error) {
+    console.log(error)
+    return res.status(401).json({message: 'Inavlid Email or does not exist', status: false})
+  }
+}
+
+// otp verification for forgot password 
+const verifyForgotOtp = async(req, res) => {
+  try {
+      const {_id, otp} = req.body
+      console.log(_id, otp)
+      const checkOtpSchema = numericStringSchema.safeParse(otp)
+
+      if(!checkOtpSchema.success) {
+        return res.status(401).json({message: 'Otp cannot be characters or letter', status: false})
+      }
+
+      const response = await User.findOne({_id}).select("-password")
+
+      if(!response) {
+        return res.status(401).json({message: 'User does not exist or creatd', status: false})
+      }
+
+      console.log(response.otp, otp)
+      if(response.otp != otp) {
+        return res.status(401).json({message: 'Entered otp is wrong', status: false})
+      }
+
+      return res.status(200).json({message: 'Otp verified successfully', response, status: true})
+
+  } catch (error) {
+    console.log(error)
+    return res.status(401).json({message: 'Wrong otp intered', status: false})
+  }
+}
+
+
+// create new password 
+const newPassword = async(req, res) => {
+  try {
+    const {_id, password1, password2} = req.body
+
+    if(!_id || !password1 || !password2) {
+      return res.status(401).json({message: 'Any one field is Empty', status: false})
+    }
+
+    if(password1 != password2) {
+      return res.status(401).json({message: 'both password does not matched', status: false})
+    }
+
+    // encrypting the password 
+
+    const password = await encryptPassword(password1)
+    // update user with new password 
+
+    const updated = await User.updateOne({_id}, {
+      $set: {password} 
+    })
+
+    if(!updated) {
+      return res.status(401).json({message: 'unable to update the user', status: false})
+    }
+
+    const response = await User.findOne({_id}).select("-password")
+
+    const token = jwtSign(response.email)
+
+    return res.status(200).json({message: 'Password changed successfully', response, token, status: true})
+
+  } catch (error) {
+    console.log(error)
+    return res.status(401).json({message: 'Password is not matched'})
+  }
+}
+
+export { login, signup, LoginWithToken, otpVerification, googleAuth, loginWithGoogle, verifyEmail, verifyForgotOtp, newPassword};

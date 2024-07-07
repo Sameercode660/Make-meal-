@@ -7,6 +7,8 @@ import ForwardProtected from '../protected/ForwardProtected'
 import ReverseProtected from '../protected/ReverseProtected'
 import OtpVerification from '../components/OtpVerification'
 import RegisterInfo from '../components/RegisterInfo'
+import FogotPassword from '../components/FogotPassword'
+import NewPassword from '../components/NewPassword'
 
 export const router = createBrowserRouter([
     {
@@ -32,5 +34,13 @@ export const router = createBrowserRouter([
     {
         path: "/register-details",
         element: <RegisterInfo></RegisterInfo>
+    },
+    {
+        path: "/forgot-password",
+        element: <FogotPassword></FogotPassword>
+    },
+    {
+        path: "/new-password",
+        element: <NewPassword></NewPassword>
     }
 ])

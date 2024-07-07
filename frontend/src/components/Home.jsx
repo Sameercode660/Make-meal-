@@ -1,10 +1,10 @@
 import React from 'react'
-import GoogleAuth from './GoogleAuth'
+
 
 function Home() {
   return (
     <div>
-      <GoogleAuth></GoogleAuth>
+      This is Home
     </div>
   )
 }
